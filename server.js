@@ -1,17 +1,28 @@
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Create __dirname equivalent
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-// Serve static files (e.g., Vue.js app build)
-app.use(express.static('dist'));  // Replace 'dist' with the correct directory of your build files
+// Serve static files from the Vue.js app
+app.use(express.static(path.join(__dirname, 'dist')));  // Ensure this points to your build directory
 
 // Test route to check server status
 app.get('/', (req, res) => {
   res.send('Server is running on http://localhost:3000');
+});
+
+// Serve the index.html file for all other routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html')); // Serve index.html for all other routes
 });
 
 // Store nominees on the backend
