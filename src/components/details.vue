@@ -4,13 +4,15 @@
       <nav>
         <div class="nav-left">
           <ul>
-            <li><a href="/" style="color: #2D3038; text-decoration: none; font-family: agrandir;" class="homeBtn">iVOTE</a></li>
+            <li><a href="/landing" style="color: #2D3038; text-decoration: none; font-family: agrandir;" class="homeBtn">iVOTE</a></li>
           </ul>
         </div>
         <div class="nav-right">
           <ul>
             <li><a href="/about">About</a></li>
             <li><a href="/contact">Contact</a></li>
+            <!-- Logout Button -->
+            <li><button @click="logout" class="logoutBtn">Logout</button></li>
           </ul>
         </div>
       </nav>
@@ -47,6 +49,7 @@
 
 <script>
 import { db } from '@/firebase'; // Assuming you have Firebase setup
+import { auth } from '@/firebase'; // Assuming Firebase Authentication is being used
 
 export default {
   name: 'DetailsPage',
@@ -77,6 +80,15 @@ export default {
     },
     goBack() {
       this.$router.push('/'); // Adjust route as needed to go back to the home page
+    },
+    // Logout method
+    logout() {
+      auth.signOut().then(() => {
+        localStorage.removeItem('account');
+        this.$router.push('/'); // Redirect to the login page after logout
+      }).catch(error => {
+        console.error('Logout error: ', error);
+      });
     }
   }
 }
@@ -149,6 +161,21 @@ nav {
 .nav-right ul li a:hover {
   color: #ccc;
 }
+
+.nav-right ul li button.logoutBtn {
+  font-size: 20px;
+  margin-bottom: 0px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.3s ease;
+  border: none;
+  background: transparent;
+}
+
+.nav-right ul li button.logoutBtn:hover {
+  opacity: 0.3;
+}
+
 
 .content {
   display: flex;

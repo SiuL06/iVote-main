@@ -1,5 +1,5 @@
 <template>
-  <div class="login-container">
+  <div class="constraint-layout">
     <img
       id="imageViewBackground"
       class="background-image"
@@ -7,8 +7,7 @@
       alt="Background"
     />
 
-    <div id="overlay" class="overlay"></div>
-    <div class="login-box">
+    <div class="register-container">
       <h2>Register to iVote!</h2>
       <form @submit.prevent="submitForm">
         <div class="input-group">
@@ -26,6 +25,9 @@
         <div class="input-group">
           <input type="date" v-model="birthdate" required />
         </div>
+        <div class="input-group">
+          <input type="tel" placeholder="+639 XXX XXX XXX" v-model="phoneNumber" required />
+        </div>
         <div class="input-group gender-group">
           <label>Gender:</label>
           <input type="radio" id="male" name="gender" value="male" v-model="gender" required />
@@ -33,12 +35,12 @@
           <input type="radio" id="female" name="gender" value="female" v-model="gender" required />
           <label for="female">Female</label>
         </div>
-        <button type="button" class="btn-login" :disabled="isLoading" @click="submitForm">
+        <button type="submit" class="btn-login" :disabled="isLoading">
           <span v-if="isLoading">Registering...</span>
           <span v-else>Register</span>
         </button>
         <div class="extra-links">
-          <a href="login" class="sign-up">Already have an account? <span>Sign in</span></a>
+          <a href="/" class="sign-up">Already have an account? <span>Sign in</span></a>
         </div>
       </form>
     </div>
@@ -59,18 +61,18 @@ export default {
       email: '',
       password: '',
       birthdate: '',
+      phoneNumber: '', // Added phone number
       gender: '',
       isLoading: false // Loading state
     };
   },
   methods: {
-    async submitForm(e) {
-      e.preventDefault(); // Prevent default form submission behavior
+    async submitForm() {
       this.isLoading = true; // Start loading
 
       try {
         // Validate required fields
-        if (!this.firstName || !this.lastName || !this.email || !this.password || !this.birthdate || !this.gender) {
+        if (!this.firstName || !this.lastName || !this.email || !this.password || !this.birthdate || !this.gender || !this.phoneNumber) {
           alert('Please fill in all the required fields');
           this.isLoading = false; // Stop loading
           return;
@@ -94,6 +96,7 @@ export default {
           lastName: this.lastName,
           email: this.email,
           birthdate: this.birthdate,
+          phoneNumber: this.phoneNumber, // Store phone number
           gender: this.gender
         });
 
@@ -126,6 +129,7 @@ export default {
       this.email = '';
       this.password = '';
       this.birthdate = '';
+      this.phoneNumber = ''; // Clear phone number
       this.gender = '';
     }
   }
@@ -133,46 +137,53 @@ export default {
 </script>
 
 <style scoped>
+* {
+  font-family: agrandir;
+}
 
-.login-container {
+@font-face {
+  font-family: agrandir;
+  src: url('@/assets/agrandir.otf');
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Prevent any scrollbars */
+}
+
+.constraint-layout {
+  position: fixed; /* Fix the layout to the screen */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh; 
-  position: relative;
+  justify-content: center; /* Center the registration form horizontally */
+  align-items: center; /* Center the registration form vertically */
+  background-color: #000;
 }
 
 .background-image {
-  position: absolute;
+  position: fixed; /* Fixed background */
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: cover; /* Ensure the image covers the full screen */
   z-index: -1;
 }
 
-.overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
+.register-container {
+  z-index: 2; /* Ensure the container stays above the background */
   width: 100%;
-  height: 100%;
-  background-color: black;
-  opacity: 0.5;
-  z-index: 2;
-}
-
-.login-box {
-  font-family: Arial, Helvetica, sans-serif;
-  z-index: 3;
-  width: 100%;
-  max-width: 400px;
-  padding: 5px;
-  height: 70%;
-  background: rgba(0, 0, 0, 0.363);
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  max-width: 400px; /* Maximum width of the registration container */
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.6); /* Slightly transparent black background */
+  border-radius: 8px; /* Rounded corners */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -193,9 +204,9 @@ h2 {
 input[type="text"],
 input[type="email"],
 input[type="password"],
-input[type="date"] {
+input[type="date"],
+input[type="tel"] { /* Added input type for phone number */
   width: 100%;
-  max-width: 400px;
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 5px;
@@ -230,7 +241,6 @@ label {
   display: flex;
   justify-content: space-between;
   margin-top: 10px;
-  
 }
 
 .extra-links a {
@@ -242,5 +252,4 @@ label {
 .extra-links a:hover {
   text-decoration: underline;
 }
-
 </style>

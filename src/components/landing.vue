@@ -3,15 +3,16 @@
     <header>
       <nav>
         <div class="nav-left">
-        <ul>
-          <li><a href="/" style="color: #2D3038; text-decoration: none; font-family: agrandir;" class="homeBtn">iVOTE</a></li>
-        </ul>
+          <ul>
+            <li><a href="/landing" style="color: #2D3038; text-decoration: none; font-family: agrandir;" class="homeBtn">iVOTE</a></li>
+          </ul>
         </div>
         <div class="nav-right">
           <ul>
             <li><a href="/about">About</a></li>
             <li><a href="/contact">Contact</a></li>
-      
+            <!-- Update the log out link -->
+            <li><a href="#" @click="logout">Logout</a></li>
           </ul>
         </div>
       </nav>
@@ -41,12 +42,16 @@ export default {
   name: 'LandingPage',
   methods: {
     goToLive() {
-      this.$router.push('/login'); 
+      this.$router.push('/voters');
+    },
+    logout() {
+      localStorage.removeItem('account');
+      this.$router.push('/');
     }
   }
- 
 }
 </script>
+
 
 <style scoped>
 * {
@@ -66,7 +71,6 @@ header {
   background-color: #fff;
   color: #fff;
   padding: 10px 0;
-  font-family: agrandir;
 }
 
 nav {
@@ -76,7 +80,6 @@ nav {
   padding: 0 20px;
   padding-right: 50px;
   font-size: 20px;
-  font-family: agrandir;
 }
 
 .homeBtn {
@@ -109,16 +112,10 @@ nav {
   color: #2D3038;
   text-decoration: none;
   transition: color 0.2s ease;
-  font-family: agrandir;
 }
 
 .nav-right ul li a:hover {
   color: #ccc;
-}
-
-.nav-logo {
-  width: 40px;
-  height: auto;
 }
 
 .content {
@@ -180,8 +177,6 @@ footer {
   margin-top: 20px;
   font-size: 12px;
   color: #555;
-  font-family: Arial, Helvetica, sans-serif !important;
-
 }
 
 button {
@@ -193,5 +188,4 @@ button {
   color: white;
   box-shadow: 0;
 }
-
 </style>

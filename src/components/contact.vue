@@ -3,28 +3,25 @@
     <!-- Navbar -->
     <header>
       <div class="navbar">
-        <RouterLink to="/" class="btn">iVOTE</RouterLink>
+        <RouterLink to="/landing" class="btn">iVOTE</RouterLink>
         <nav>
           <ul>
             <li><RouterLink to="/about" class="btn">About</RouterLink></li>
             <li><RouterLink to="/contact" class="btn">Contact</RouterLink></li>
+            <li><button @click="signOut" class="btn logout-btn">Logout</button></li> <!-- Added Log out button -->
           </ul>
         </nav>
       </div>
     </header>
-<!-- Transition for route changes -->
 
     <!-- Main Content -->
     <div class="content">
-      
-
       <main>
         <section class="contact-intro">
           <h1>Get in Touch with iVote</h1>
           <p>If you have any questions or need further information, feel free to reach out to us. We’d love to hear from you!</p>
         </section>
 
-        <!-- Contact Wrapper for Flexbox -->
         <div class="contact-wrapper">
           <section class="contact-info">
             <h2>Other Ways to Contact Us</h2>
@@ -50,8 +47,6 @@
           </section>
         </div>
       </main>
-
-      
     </div>
   </div>
 </template>
@@ -82,7 +77,8 @@ export default {
       const auth = getAuth();
       signOut(auth)
         .then(() => {
-          this.$router.push("/login");
+          localStorage.removeItem('account');
+          this.$router.push("/");
           console.log("User signed out.");
         })
         .catch((error) => {
@@ -96,10 +92,8 @@ export default {
 <style scoped>
 * {
   font-family: agrandir;
-  font-size: 18px
-  
+  font-size: 18px;
 }
-
 
 /* Navbar styles */
 .navbar {
@@ -110,13 +104,11 @@ export default {
   padding-right: 30px;
   background-color: #fff; /* Secondary background for navbar */
   position: relative;
-  
 }
 
 .navbar nav ul {
   list-style-type: none;
   display: flex;
-  
 }
 
 .navbar nav ul li {
@@ -127,7 +119,7 @@ export default {
 .btn {
   background-color: transparent;
   border: none;
-  color: black;
+  color: #333;
   font-size: 20px;
   cursor: pointer;
   font-weight: bold;
@@ -136,22 +128,30 @@ export default {
 }
 
 .btn:hover {
-  opacity: .3;
+  opacity: 0.3;
 }
 
-/* Container layout for content only */
-.container {
-  height: 100%;
-  font-family: agrandir;
-  
+/* Log Out button styles */
+.logout-btn {
+  background-color: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: 0.3s ease;
+  text-decoration: none !important;
+}
+
+.logout-btn:hover {
+  opacity: 0.3;
 }
 
 /* Content area */
 .content {
   padding: 20px;
   color: #2d3038;
-  background: rgb(2,0,36);
-  background: linear-gradient(180deg, rgba(2,0,36,1) 0%, rgba(9,9,121,1) 35%, rgba(0,212,255,1) 100%);
+  background: rgb(2, 0, 36);
+  background: linear-gradient(180deg, rgba(2, 0, 36, 1) 0%, rgba(9, 9, 121, 1) 35%, rgba(0, 212, 255, 1) 100%);
   border-radius: 8px;
   padding-bottom: 10vh;
 }
@@ -161,14 +161,6 @@ export default {
   display: flex;
   justify-content: space-between;
   gap: 20px;
-}
-
-/* Contact page styles */
-.contact-container {
-  max-width: 100%;
-  margin: 0 auto;
-  padding: 20px;
-  
 }
 
 .contact-intro {
@@ -241,17 +233,15 @@ export default {
 }
 
 .contact-info p {
-  font-size: 18px; /* Existing font size */
-  color: #2d3038; /* Existing color */
-  margin-bottom: 10px; /* Adds space between the lines */
+  font-size: 18px;
+  color: #2d3038;
+  margin-bottom: 10px;
 }
 
 .contact-info p i {
-  margin-right: 8px; /* Adds space between the icon and the text */
+  margin-right: 8px;
   color: #2d3038;
 }
-
-
 
 /* Responsive Design */
 @media (max-width: 768px) {
@@ -268,7 +258,4 @@ export default {
     padding: 15px;
   }
 }
-
-
-
 </style>

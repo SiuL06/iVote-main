@@ -2,16 +2,7 @@
   <div id="app">
     <!-- Navigation Links -->
     <nav>
-      <router-link to="/">Home</router-link>
-      <router-link to="/landing">Landing</router-link>
-      <router-link to="/login">Login</router-link>
-      <router-link to="/about">About</router-link>
-      <router-link to="/live">Live</router-link>
-      <router-link to="/register">Register</router-link>
-      <router-link to="/result">Results</router-link>
-      <router-link to="/contact">Contact</router-link>
-      <router-link to="/voters">Voters</router-link>
-      <router-link to="/details">Details</router-link>
+
     </nav>
 
     <!-- Render Voting System only on the /home route -->
@@ -39,6 +30,8 @@
 
 <script>
 import { io } from 'socket.io-client';
+import { auth } from "@/firebase"; // Import the Firebase auth module
+import { onAuthStateChanged } from "firebase/auth"; // Firebase auth state listener
 
 export default {
   name: 'App',
@@ -48,6 +41,7 @@ export default {
       nominees: [],
       voteResponseMessage: '',
       isHomePage: false,  // To control if the Voting System is visible
+      isAuthenticated: false, // Track authentication status
     };
   },
   methods: {
@@ -68,9 +62,25 @@ export default {
     // Check if the current route is 'home' (for displaying the Voting System)
     checkIfHomePage() {
       this.isHomePage = this.$route.path === '/home';
+    },
+
+    // Check if the user is authenticated
+    checkAuthentication() {
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          this.isAuthenticated = true;
+        } else {
+          this.isAuthenticated = false;
+          // Redirect to login page if not authenticated
+          this.$router.push('/');
+        }
+      });
     }
   },
   created() {
+    // Check if the user is authenticated when the app is created
+    this.checkAuthentication();
+
     // Create a socket connection to the backend server on localhost:3001
     this.socket = io('http://localhost:3001', {
       transports: ['websocket'],
@@ -93,7 +103,7 @@ export default {
     // Watch for route changes and update `isHomePage` accordingly
     '$route': 'checkIfHomePage'
   },
-  beforeDestroy() {
+  beforeUnmount() {
     // Clean up the socket connection when the component is destroyed
     if (this.socket) {
       this.socket.off('nomineeUpdate');

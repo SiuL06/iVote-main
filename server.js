@@ -3,6 +3,11 @@ import http from 'http';
 import { Server } from 'socket.io';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import admin from 'firebase-admin';
+import bodyParser from 'body-parser';
+
+// Initialize Firebase Admin SDK
+admin.initializeApp();
 
 // Create __dirname equivalent
 const __filename = fileURLToPath(import.meta.url);
@@ -11,6 +16,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
+
+// Middleware to parse JSON request bodies
+app.use(bodyParser.json());
 
 // Serve static files from the Vue.js app
 app.use(express.static(path.join(__dirname, 'dist')));  // Ensure this points to your build directory
@@ -73,6 +81,46 @@ io.on('connection', (socket) => {
   });
 });
 
+// Set up a route to verify MFA code
+app.post('/verify-mfa', async (req, res) => {
+  const { uid, mfaVerificationCode } = req.body;
+
+  if (!uid || !mfaVerificationCode) {
+    return res.status(400).send('UID and MFA verification code are required');
+  }
+
+  try {
+    // Call the verifyMfaCode function
+    await verifyMfaCode(uid, mfaVerificationCode);
+    res.status(200).send('MFA verification successful');
+  } catch (error) {
+    console.error('MFA verification failed:', error);
+    res.status(400).send('MFA verification failed');
+  }
+});
+
+// MFA Verification Function
+const verifyMfaCode = async (uid, mfaVerificationCode) => {
+  try {
+    // Retrieve the user's ID token and get their MFA enrollment
+    const user = await admin.auth().getUser(uid);
+    const enrolledFactors = user.mfa.enrolledFactors;
+
+    if (enrolledFactors.length === 0) {
+      throw new Error('User has not enrolled any MFA factors.');
+    }
+
+    // Assuming the second factor is SMS, verify the MFA code
+    const verification = await admin.auth().verifyPhoneNumberCode(mfaVerificationCode);
+    console.log('MFA verification successful:', verification);
+    return verification;
+  } catch (error) {
+    console.error('MFA verification failed:', error);
+    throw new Error('MFA verification failed');
+  }
+};
+
+// Listen on a port (example: 3000)
 server.listen(3000, () => {
   console.log('Server is running on http://localhost:3000');
 });

@@ -3,11 +3,12 @@
     <!-- Navbar -->
     <header>
       <div class="navbar">
-        <RouterLink to="/" class="btn">iVOTE</RouterLink>
+        <RouterLink to="/landing" class="btn">iVOTE</RouterLink>
         <nav>
           <ul>
             <li><RouterLink to="/about" class="btn">About</RouterLink></li>
             <li><RouterLink to="/contact" class="btn">Contact</RouterLink></li>
+            <li><button @click="logout" class="btn no-border">Logout</button></li>
           </ul>
         </nav>
       </div>
@@ -45,6 +46,12 @@
 <script>
 export default {
   name: "AboutPage",
+  methods: {
+    logout() {
+      localStorage.removeItem('account');
+      this.$router.push("/"); // Redirects to the login page
+    },
+  },
 };
 </script>
 
@@ -73,13 +80,11 @@ body {
   padding-right: 30px;
   background-color: #fff; /* Secondary background for navbar */
   position: relative;
-  
 }
 
 .navbar nav ul {
   list-style-type: none;
   display: flex;
-  
 }
 
 .navbar nav ul li {
@@ -89,18 +94,23 @@ body {
 /* Button styles */
 .btn {
   background-color: white;
-  
   font-size: 20px;
-  color: black;
+  color: #333;
   cursor: pointer;
   transition: 0.3s ease;
   text-decoration: none;
+  border: none; /* Removed border */
   border-radius: 5px;
 }
 
-.btn:hover { 
+.btn:hover {
   border-radius: 8px;
-  opacity: .3;
+  opacity: 0.3;
+}
+
+.no-border {
+  background-color: transparent; /* Matches the other buttons' background */
+  font-family: inherit;
 }
 
 /* About section styles */
@@ -110,11 +120,15 @@ body {
   align-items: center;
   padding: 50px;
   flex-grow: 1;
-  background: rgb(2,0,36);
-  background: linear-gradient(90deg, rgba(2,0,36,1) 0%, rgba(9,9,121,1) 35%, rgba(0,212,255,1) 100%);
+  background: rgb(2, 0, 36);
+  background: linear-gradient(
+    90deg,
+    rgba(2, 0, 36, 1) 0%,
+    rgba(9, 9, 121, 1) 35%,
+    rgba(0, 212, 255, 1) 100%
+  );
   color: white;
   border-radius: 5px;
-
 }
 
 .about-content {
@@ -144,7 +158,6 @@ body {
   border-radius: 5px;
 }
 
-
 /* Footer styles */
 footer {
   color: #555;
@@ -156,7 +169,6 @@ footer {
 }
 
 footer p {
-  margin-top: 20vh;
   font-size: 12px;
 }
 </style>

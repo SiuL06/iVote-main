@@ -14,7 +14,7 @@
       <input
         v-model="login"
         type="email"
-        placeholder="Login with your UA account"
+        placeholder="Email"
         class="text-input"
       />
       <input
@@ -32,53 +32,170 @@
         <label for="privacyPolicy">I agree to the Privacy Policy</label>
       </div>
       <button class="login-button" @click="handleLogin">Login</button>
+
+      <div id="recaptcha-container"></div>
+
+      <div v-if="showPhoneInput">
+        <input
+          v-model="phoneNumber"
+          type="tel"
+          placeholder="Phone Number"
+          class="text-input"
+        />
+        <button class="login-button" @click="sendVerificationCode">Send Verification Code</button>
+      </div>
+
+      <div v-if="showVerificationInput">
+        <input
+          v-model="verificationCode"
+          type="text"
+          placeholder="Enter Verification Code"
+          class="text-input"
+        />
+        <button class="login-button" @click="verifyCode">Verify Code</button>
+      </div>
+
+      <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
+
       <a href="#" class="register-link" @click="navigateToRegister">Register</a>
     </div>
   </div>
 </template>
 
 <script>
-import { auth } from '@/firebase'; // Import Firebase auth
-import { signInWithEmailAndPassword } from 'firebase/auth'; // Import the sign-in method
+import { auth } from '@/firebase';
+import { signInWithEmailAndPassword, RecaptchaVerifier, signInWithPhoneNumber, PhoneAuthProvider, signInWithCredential } from 'firebase/auth'; // Add signInWithCredential
+import { db } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default {
   name: 'LoginPage',
   data() {
     return {
-      login: '',
-      password: '',
-      agreeToPrivacyPolicy: false,
+      login: '', // Email or login identifier
+      password: '', // User password
+      phoneNumber: '', // Phone number to verify
+      verificationCode: '', // Code to verify the phone number
+      agreeToPrivacyPolicy: false, // Privacy policy agreement flag
+      showPhoneInput: false, // Flag to show phone input after login
+      showVerificationInput: false, // Flag to show verification input
+      confirmationResult: null, // Firebase phone auth confirmation result
+      errorMessage: '', // Error message for displaying in UI
     };
   },
   methods: {
+    // Setup reCAPTCHA widget
+    setupRecaptcha() {
+      if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new RecaptchaVerifier(
+          'recaptcha-container', // The HTML container ID for reCAPTCHA
+          {
+            size: 'normal', // Invisible reCAPTCHA
+            callback: () => {
+              this.sendVerificationCode(); // Call the method to send the verification code
+            },
+            'expired-callback': () => {
+              this.errorMessage = 'Please complete the reCAPTCHA again.'; // Handle reCAPTCHA expiration
+            },
+          },
+          auth // Firebase Auth instance
+        );
+      }
+    },
+
+    // Handle login with email and password
     async handleLogin() {
       if (this.agreeToPrivacyPolicy) {
         try {
-          // Authenticate user with Firebase
+          // Try to sign in the user with email and password
           const userCredential = await signInWithEmailAndPassword(auth, this.login, this.password);
           console.log('User logged in:', userCredential.user);
 
-          // Redirect to the home page after successful login
-          this.$router.push('/voters'); // Ensure you have the route to home.vue set up
+          // Retrieve user data from Firestore based on UID
+          const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+          if (userDoc.exists()) {
+            this.phoneNumber = userDoc.data().phoneNumber;
+            this.showPhoneInput = true; // Show phone input for verification
+            this.setupRecaptcha(); // Setup reCAPTCHA widget
+            console.log('Phone number retrieved:', this.phoneNumber);
+          } else {
+            this.errorMessage = 'No user data found in Firestore.';
+          }
 
         } catch (error) {
-          console.error('Login failed:', error);
-          alert('Login failed: ' + error.message);
+          console.error('Error during login:', error);
+          this.errorMessage = 'Error during login: ' + error.message;
         }
       } else {
-        alert('Please agree to the Privacy Policy');
+        this.errorMessage = 'You must agree to the Privacy Policy to log in.';
       }
     },
-    navigateToRegister() {
-      console.log('Navigating to Register page');
-      this.$router.push('/register'); // Navigate to register page
+
+    // Send phone number verification code via SMS
+    async sendVerificationCode() {
+      if (!this.phoneNumber) {
+        this.errorMessage = 'Phone number is required to send the verification code.';
+        return;
+      }
+
+      // Setup reCAPTCHA before sending the verification code
+      this.setupRecaptcha();
+
+      const appVerifier = window.recaptchaVerifier;
+      try {
+        // Send verification code via Firebase Auth
+        const confirmationResult = await signInWithPhoneNumber(auth, this.phoneNumber, appVerifier);
+        this.confirmationResult = confirmationResult;
+        this.showVerificationInput = true; // Show the input for the user to enter the verification code
+        this.errorMessage = ''; // Clear any previous error
+        console.log('Verification code sent to', this.phoneNumber);
+      } catch (error) {
+        console.error('Error sending verification code:', error);
+        this.errorMessage = 'Error sending verification code: ' + error.message;
+      }
     },
-  },
+
+    // Verify the code entered by the user
+    async verifyCode() {
+      if (!this.verificationCode) {
+        this.errorMessage = 'Please enter the verification code.';
+        return;
+      }
+
+      try {
+        // Create a credential with the verification code and sign in
+        const credential = PhoneAuthProvider.credential(
+          this.confirmationResult.verificationId,
+          this.verificationCode
+        );
+
+        // Sign in with the credential using Firebase Auth
+        const userCredential = await signInWithCredential(auth, credential);
+        console.log('User signed in successfully:', userCredential.user);
+        alert('Phone number verified and user signed in!');
+        this.$router.push('/landing'); // Redirect to the landing page after successful verification
+      } catch (error) {
+        console.error('Error verifying code:', error);
+        this.errorMessage = 'Error verifying code: ' + error.message;
+      }
+    },
+
+    // Navigate to the registration page
+    navigateToRegister() {
+      this.$router.push('/register');
+    }
+  }
 };
 </script>
 
 
+
 <style scoped>
+.error-message {
+  color: red;
+  margin-top: 10px;
+}
+
 * {
   font-family: agrandir;
 }
@@ -92,23 +209,23 @@ html, body {
   padding: 0;
   width: 100%;
   height: 100%;
-  overflow: hidden; /* Prevent any scrollbars */
-
+  overflow: hidden;
 }
 
 .constraint-layout {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
-  flex-direction: column;
   justify-content: center;
   align-items: center;
   background-color: #000;
 }
 
 .background-image {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
@@ -117,26 +234,14 @@ html, body {
   z-index: 1;
 }
 
-.overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: black;
-  opacity: 0.5;
-  z-index: 2;
-}
-
 .login-container {
-  z-index: 3;
+  z-index: 2;
   width: 100%;
-  height: 70%;
   max-width: 400px;
   padding: 20px;
-  background: rgba(0, 0, 0, 0.363);
-  border-radius: 8px; /* Rounded corners */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -150,8 +255,7 @@ html, body {
 
 .logo {
   width: 100%;
-  max-width: 285px; /* Adjust size as needed */
-  display: block;
+  max-width: 285px;
 }
 
 .text-input {
@@ -183,7 +287,6 @@ html, body {
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  transition: 0.1s;
 }
 
 .login-button:hover {
@@ -191,29 +294,15 @@ html, body {
 }
 
 .register-link {
-  color: white ;
+  color: white;
   cursor: pointer;
   text-decoration: none;
-  transition: 0.1s;
 }
 
 .register-link:hover {
   color: white;
   background-color: #33333386;
-  padding-bottom: 1px;
-  padding-left: 10px;
-  padding-right: 10px;
+  padding: 1px 10px;
   border-radius: 2px;
 }
-
-.gmail-button {
-  background-color: #db4437;
-  color: white;
-  margin-top: 10px;
-}
-
-.gmail-button:hover {
-  background-color: #a33627;
-}
-
 </style>

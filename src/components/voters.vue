@@ -3,11 +3,12 @@
     <!-- Navbar -->
     <header>
       <div class="navbar">
-        <RouterLink to="/" class="btn">iVOTE</RouterLink>
+        <RouterLink to="/landing" class="btn">iVOTE</RouterLink>
         <nav>
           <ul>
             <li><RouterLink to="/about" class="btn">About</RouterLink></li>
             <li><RouterLink to="/contact" class="btn">Contact</RouterLink></li>
+            <li><button @click="logout" class="btn">Logout</button></li> <!-- Logout Button -->
           </ul>
         </nav>
       </div>
@@ -56,8 +57,9 @@
   </div>
 </template>
 
-
 <script>
+import { auth } from "@/firebase"; // Import auth from Firebase
+import { signOut } from "firebase/auth"; // Firebase signOut method
 import { io } from "socket.io-client";
 import { getFirestore, collection, addDoc } from "firebase/firestore";
 
@@ -101,6 +103,12 @@ export default {
   },
   methods: {
     async submitVote() {
+      // Check if the user has already voted
+      if (localStorage.getItem('hasVoted')) {
+        alert("Your vote has already been submitted and you cannot vote again.");
+        return;
+      }
+
       if (!this.selectedNominee) {
         alert("Please select a nominee to vote for.");
         return;
@@ -121,13 +129,24 @@ export default {
         this.socket3000.emit('voteCast', voteData);
         this.socket3001.emit('voteCast', voteData);
 
-        // Disable the vote button after submission
+        // Mark the user as having voted
+        localStorage.setItem('hasVoted', 'true');
         this.voted = true;
 
         alert("Your vote has been submitted successfully!");
       } catch (error) {
         console.error("Error submitting vote:", error);
         alert("Error submitting vote, please try again.");
+      }
+    },
+    async logout() {
+      try {
+        await signOut(auth);  // Sign out the user
+        console.log("User  logged out successfully");
+        this.$router.push("/");  // Redirect to homepage or login page
+      } catch (error) {
+        console.error("Error logging out:", error);
+        alert("Error logging out. Please try again.");
       }
     },
     openMessage() {
@@ -167,7 +186,8 @@ body,
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 30px;
+  padding: 0px 15px;
+  padding-bottom: 20px;
   background-color: #fff;
   border-bottom: 2px solid #ddd;
   font-family: agrandir;
@@ -179,7 +199,7 @@ body,
 }
 
 .navbar nav ul li {
-  margin-right: 20px;
+  margin-right: 0px;
   transition: 0.3s;
 }
 
@@ -190,12 +210,13 @@ body,
 .btn {
   background-color: white;
   font-size: 20px;
-  color: black;
+  color: #333;
   text-decoration: none;
-  padding: 0px 15px;
+  padding: 0px 20px;
   border: 1px solid transparent;
   border-radius: 5px;
   transition: 0.3s ease;
+  cursor: pointer;
 }
 
 /* Voters Section */
@@ -255,78 +276,56 @@ body,
 }
 
 .radio-button {
-  margin-bottom: 10px;
+  margin-right: 10px;
 }
 
 .nominee-title {
-  font-size: 18px;
-  margin-bottom: 10px;
-}
-
-.score {
-  font-size: 24px;
-  font-weight: bold;
+  font-size: 16px;
 }
 
 .submit-votes {
-  padding: 15px 25px;
-  font-size: 18px;
+  background-color: #4CAF50;
+  padding: 10px 20px;
+  color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  background-color: #2D3038;
-  color: white;
   transition: background-color 0.3s ease;
 }
 
 .submit-votes:hover {
-  background-color: #131418;
+  background-color: #45a049;
 }
+
+/* Logout Button */
+
 
 /* Footer */
 footer {
-  background-color: #f8f9fa;
-  padding: 15px;
   text-align: center;
-  position: relative;
-  width: 100%;
-}
-
-footer p {
-  font-size: 14px;
-  margin: 0;
+  margin-top: 20px;
+  font-size: 12px;
   color: #555;
 }
 
-/* Message Button */
 .message-button {
   position: fixed;
   bottom: 30px;
   right: 30px;
-  background-color: #ffffff;
-  color: white;
-  padding: 15px;
+  background-color: #333;
   border-radius: 50%;
-  border: none;
+  padding: 10px;
   cursor: pointer;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-  transition: background-color 0.3s ease;
+  transition: 0.3s;
 }
 
 .message-button:hover {
-  background-color: #0056b3;
+  background-color: #161616;
 }
 
 .message-icon {
   width: 30px;
   height: 30px;
-}
 
-/* Responsive Image Sizes */
-@media (max-width: 768px) {
-  .message-icon {
-    width: 25px;
-    height: 25px;
-  }
 }
 </style>

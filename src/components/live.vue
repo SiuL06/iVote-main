@@ -3,11 +3,12 @@
     <!-- Navbar -->
     <header>
       <div class="navbar">
-        <RouterLink to="/" class="btn">iVOTE</RouterLink>
+        <RouterLink to="/landing" class="btn">iVOTE</RouterLink>
         <nav>
           <ul>
             <li><RouterLink to="/about" class="btn">About</RouterLink></li>
             <li><RouterLink to="/contact" class="btn">Contact</RouterLink></li>
+            <li><a class="btn logout" @click="logout">Logout</a></li> <!-- Logout button -->
           </ul>
         </nav>
       </div>
@@ -33,17 +34,22 @@
           </div>
         </div>
         <input type="text" v-model="newMessage" placeholder="Type your message..." />
-        <button @click="sendMessage">Send</button>
+        <button @click="sendMessage" class="send-btn">Send</button>
       </section>
     </main>
+
+<!-- Logo Navigator -->
+<RouterLink to="/voters" class="logo-link">
+      <img src="@/assets/logo.png" alt="Logo" class="logo" />
+    </RouterLink>
   </div>
 </template>
 
 <script>
 import { io } from 'socket.io-client';
 import { db } from '@/firebase'; // Adjust the path as necessary
-import { collection, onSnapshot, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore'; // For Firestore
-import { getAuth } from 'firebase/auth'; // Import Firebase Auth
+import { collection, onSnapshot, addDoc, doc, getDoc } from 'firebase/firestore'; // For Firestore
+import { getAuth, signOut } from 'firebase/auth'; // Import Firebase Auth
 
 export default {
   name: 'LivePage',
@@ -54,12 +60,12 @@ export default {
       newMessage: '',
       socket1: null,
       socket2: null,
-      username: 'User', // Default username
+      username: '', // Initialize username as empty
     };
   },
   async mounted() {
     const auth = getAuth();
-    const userId = auth.currentUser ? auth.currentUser.uid : null; // Get current user ID
+    const userId = auth.currentUser  ? auth.currentUser .uid : null; // Get current user ID
 
     // Fetch the user's first name from Firestore
     await this.fetchUserName(userId);
@@ -108,69 +114,50 @@ export default {
 
         if (userSnapshot.exists()) {
           const userData = userSnapshot.data();
-          this.username = userData.firstName || 'User'; // Set username to firstName or default to 'User'
+          this.username = userData.firstName || 'User '; // Set username to firstName or default to 'User '
         } else {
           console.error("No such user document!");
-          this.username = 'User'; // Fallback username
+          this.username = 'User '; // Fallback username
         }
       } else {
         console.error("No authenticated user found!");
-        this.username = 'User'; // Fallback if no user is authenticated
+        this.username = 'User '; // Fallback if no user is authenticated
       }
     },
 
     async fetchNominees() {
-  const votesCollection = collection(db, 'votes'); // Reference to votes collection in Firestore
+      const votesCollection = collection(db, 'votes'); // Reference to votes collection in Firestore
 
-  // Listen to real-time changes
-  onSnapshot(votesCollection, (snapshot) => {
-    let voteCounts = {}; // Initialize an empty object to store the vote counts
+      // Listen to real-time changes
+      onSnapshot(votesCollection, (snapshot) => {
+        let voteCounts = {}; // Initialize an empty object to store the vote counts
 
-    snapshot.docs.forEach((doc) => {
-      const nomineeName = doc.data().vote; // Assuming 'vote' field holds nominee's name
+        snapshot.docs.forEach((doc) => {
+          const nomineeName = doc.data().vote; // Assuming 'vote' field holds nominee's name
 
-      // Increment the count for the nominee
-      if (voteCounts[nomineeName]) {
-        voteCounts[nomineeName] += 1;
-      } else {
-        voteCounts[nomineeName] = 1;
-      }
-    });
+          // Increment the count for the nominee
+          if (voteCounts[nomineeName]) {
+            voteCounts[nomineeName] += 1;
+          } else {
+            voteCounts[nomineeName] = 1;
+          }
+        });
 
-    // Convert the voteCounts object into an array of nominees with their vote counts
-    const nominees = Object.keys(voteCounts).map(nomineeName => ({
-      name: nomineeName,
-      score: voteCounts[nomineeName],
-    }));
+        // Convert the voteCounts object into an array of nominees with their vote counts
+        const nominees = Object.keys(voteCounts).map(nomineeName => ({
+          name: nomineeName,
+          score: voteCounts[nomineeName],
+        }));
 
-    this.nominees = nominees; // Update nominees list with real-time vote counts
-    console.log('Fetched and counted nominees from Firestore:', nominees); // Log the nominees with vote counts
-  });
-},
-
-async castVote(nomineeId) {
-  const nomineeDoc = doc(db, 'votes', nomineeId); // Reference to the nominee's document
-  const nomineeSnapshot = await getDoc(nomineeDoc);
-
-  if (nomineeSnapshot.exists()) {
-    const nomineeData = nomineeSnapshot.data();
-    const newScore = nomineeData.score + 1; // Increment vote count
-
-    // Update Firestore with the new vote count
-    await updateDoc(nomineeDoc, { score: newScore });
-    console.log(`Vote casted for ${nomineeData.vote}. New score: ${newScore}`);
-
-        // Update local nominees list to reflect the vote change
-        this.nominees = this.nominees.map(nominee =>
-          nominee.id === nomineeId ? { ...nominee, score: newScore } : nominee
-        );
-      }
+        this.nominees = nominees; // Update nominees list with real-time vote counts
+        console.log('Fetched and counted nominees from Firestore:', nominees); // Log the nominees with vote counts
+      });
     },
 
     async sendMessage() {
       if (this.newMessage.trim()) {
         const messageData = {
-          user: this.username, // Ensure user is included
+          user: this.username, // Use the fetched username
           message: this.newMessage,
           timestamp: Date.now() // Add timestamp for ordering
         };
@@ -212,6 +199,17 @@ async castVote(nomineeId) {
           this.chatMessages.push(newMessage); // Add the new message if it doesn't already exist
         }
       });
+    },
+
+    async logout() {
+      const auth = getAuth();
+      try {
+        await signOut(auth); // Log the user out
+        console.log('User  logged out successfully');
+        this.$router.push('/'); // Redirect to the login page (adjust path as necessary)
+      } catch (error) {
+        console.error("Error logging out:", error);
+      }
     }
   },
 
@@ -234,10 +232,11 @@ async castVote(nomineeId) {
 }
 
 /* Navbar styles */
+/* Navbar styles */
 .navbar {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: center; /* Center items vertically */
   padding: 0 20px;
   padding-right: 30px;
   background-color: #fff; /* Secondary background for navbar */
@@ -246,18 +245,24 @@ async castVote(nomineeId) {
 
 .navbar nav ul {
   list-style-type: none;
-  display: flex;
+  display: flex; /* Use flexbox for the list */
+  align-items: center; /* Align items vertically */
 }
 
 .navbar nav ul li {
-  margin-right: 20px;
+  margin-right: 20px; /* Spacing between buttons */
+}
+
+/* Additional styles for the logout button if needed */
+.logout {
+  margin-left: auto; /* Pushes the logout button to the right */
 }
 
 /* Button styles for navbar */
 .btn {
   background-color: transparent;
   border: none;
-  color: black;
+  color: #333;
   font-size: 20px;
   cursor: pointer;
   font-weight: bold;
@@ -402,19 +407,98 @@ input[type="text"] {
 }
 
 button {
-  background-color: #657FC7;
-  color: white;
   padding: 10px 15px;
   border: none;
   border-radius: 8px;
-  font-size: 16px;
+  background-color: #4CAF50;
+  color: #fff;
   cursor: pointer;
-  width: 100%;
-  transition: 0.2s;
+  transition: 0.3s;
 }
-
 button:hover {
-  background-color: #4b63a1;
+  background-color: #3a8b3c;
 }
 
+.logo-link {
+  position: fixed; /* Fixed positioning */
+  bottom: 20px; /* Distance from the bottom */
+  right: 20px; /* Distance from the right */
+  z-index: 1000; /* Ensure it's on top of other elements */
+}
+
+.logo {
+  width: 30px;
+  height: auto;
+  cursor: pointer;
+  border: 4px solid black;
+  border-radius: 100px;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 10px;
+  transition: transform 0.3s;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.logo:hover {
+  transform: scale(1.1);
+}
+
+/* Media Queries for Responsiveness */
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: row; /* Stack navbar items vertically */
+    font-size: 15px;
+  }
+
+  .navbar nav ul {
+    flex-direction: row; /* Stack nav items vertically */
+    gap: 5px;
+    align-items: flex-start; /* Align items to the start */
+  }
+
+  .navbar nav ul li {
+    margin-left: auto; /* Adjust margin for vertical layout */
+  }
+
+  .nominee {
+    flex: 1 1 100%; /* Full width on smaller screens */
+  }
+
+  .live-chat {
+    padding: 15px; /* Adjust padding */
+  }
+
+  .chat-box {
+    height: 200px; /* Reduce height for smaller screens */
+  }
+
+  input[type="text"] {
+    width: calc(100% - 20px); /* Adjust width */
+  }
+
+  button {
+    width: 100%; /* Full width for buttons */
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 22px; /* Smaller font size for headings */
+  }
+
+  .btn {
+    font-size: 15px; /* Smaller button font size */
+  }
+
+  .nominee h2 {
+    font-size: 18px; /* Smaller font size for nominee names */
+  }
+
+  .nominee p {
+    font-size: 14px; /* Smaller font size for nominee scores */
+  }
+
+  .live-chat h2 {
+    font-size: 20px; /* Smaller font size for chat heading */
+  }
+}
 </style>
